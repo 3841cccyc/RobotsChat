@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: #1e1e1e;
+  color: #cccccc;
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #424242;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4f4f4f;
+}
+
+/* 隐藏滚动条但保持功能 */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* macOS 风格按钮 */
+.mac-button {
+  @apply px-3 py-1.5 rounded-md transition-colors duration-150;
+  @apply hover:bg-mac-hover;
+  @apply focus:outline-none focus:ring-2 focus:ring-mac-accent;
+}
+
+/* macOS 风格输入框 */
+.mac-input {
+  @apply w-full px-3 py-2 rounded-md transition-colors duration-150;
+  @apply bg-mac-bg border border-mac-border;
+  @apply text-mac-text placeholder-mac-text-secondary;
+  @apply focus:outline-none focus:border-mac-accent;
+}
+
+/* macOS 风格文本区域 */
+.mac-textarea {
+  @apply w-full px-3 py-2 rounded-md transition-colors duration-150;
+  @apply bg-mac-bg border border-mac-border;
+  @apply text-mac-text placeholder-mac-text-secondary;
+  @apply focus:outline-none focus:border-mac-accent resize-none;
+}
