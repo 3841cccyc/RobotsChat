@@ -1,4 +1,4 @@
-# 🤖 机器人对话系统
+# 🤖 RobotsChat
 
 一个支持多机器人独立人格、群聊、文档理解、macOS 风格界面的 AI 对话系统。
 
@@ -17,12 +17,13 @@
 
 - Node.js 18+
 - Python 3.9+
-- OpenAI API Key（或兼容的 API）
+- MiniMax API Key（或兼容的 API）
 
 ### 1. 克隆项目
 
 ```bash
-cd testforcc
+git clone https://github.com/3841cccyc/RobotsChat.git
+cd RobotsChat
 ```
 
 ### 2. 设置后端
@@ -46,10 +47,9 @@ pip install -r requirements.txt
 copy .env.example .env
 
 # 编辑 .env 文件，填入你的 API Key
-# OPENAI_API_KEY=your-api-key-here
 
 # 启动后端服务
-python -m app.main
+python -m uvicorn app.main:app --reload
 ```
 
 后端服务将在 http://localhost:8000 运行
@@ -111,7 +111,7 @@ npm run dev
 
 ### 后端
 - FastAPI - Web 框架
-- LangChain - LLM 集成
+- Anthropic SDK - LLM 集成（支持 MiniMax）
 - ChromaDB - 向量数据库
 - SQLAlchemy - 数据库 ORM
 
@@ -124,7 +124,7 @@ npm run dev
 ## 📁 项目结构
 
 ```
-testforcc/
+RobotsChat/
 ├── backend/                 # 后端服务
 │   ├── app/
 │   │   ├── config.py       # 配置
@@ -157,7 +157,7 @@ testforcc/
 ## ⚠️ 注意事项
 
 1. **API Key** - 使用前请确保已在 `.env` 文件中配置有效的 API Key
-2. **网络** - 由于使用 OpenAI API，需要稳定的网络连接
+2. **网络** - 由于使用 MiniMax API，需要稳定的网络连接
 3. **费用** - 使用 API 会产生费用，请留意使用量
 4. **首次运行** - 首次启动后端时会自动创建数据库
 
