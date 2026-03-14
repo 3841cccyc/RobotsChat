@@ -1,5 +1,6 @@
 from app.services.llm_service import llm_service
 from app.services.rag_service import rag_service
+from app.services.streaming_dedup import BufferedDeduplicator, HistoryChecker
 from app.models import Bot, GroupConversation, GroupMessage
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -133,17 +134,17 @@ class GroupChatService:
         all_messages: List[Dict],
     ) -> AsyncGenerator[str, None]:
         """流式生成机器人回复"""
-        
+
         # 构建系统提示词（只有自己的 system prompt）
         system_prompt = bot.system_prompt
         system_prompt += "\n\n你正在参与一个多人群聊。请根据对话历史，用你的角色风格回复。"
-        
+
         # 添加防重复指令
         system_prompt += "\n\n【重要规则】:\n"
         system_prompt += "1. 不要重复自己或他人已经说过的话\n"
         system_prompt += "2. 保持回复简洁有力，不要冗余\n"
         system_prompt += "3. 用独特的表达方式回应\n"
-        
+
         # 添加其他人的发言作为上下文（但不是他们的 system prompt）
         if all_messages:
             other_messages = []
@@ -154,15 +155,41 @@ class GroupChatService:
                     )
             if other_messages:
                 system_prompt += f"\n\n【群聊历史】:\n" + "\n".join(other_messages)
-        
-        # 流式生成回复
+
+        # 创建历史消息检查器
+        history_checker = HistoryChecker(max_history=10)
+
+        # 添加之前机器人的回复到历史
+        for msg in all_messages:
+            if msg.get("sender_name") == bot.name:
+                history_checker.add_message(msg.get("content", ""))
+
+        # 创建带历史检查的缓冲区去重器
+        dedup = BufferedDeduplicator(
+            buffer_size=100,
+            flush_interval=0.05,
+            n=4
+        )
+        dedup.set_history_checker(history_checker)
+
+        # 流式生成回复，使用流式去重
+        full_response = ""
         async for text_chunk in llm_service.chat_stream(
             messages=messages,
             system_prompt=system_prompt,
             temperature=bot.temperature,
-            max_tokens=bot.max_tokens
+            max_tokens=bot.max_tokens,
+            use_stream_dedup=True
         ):
-            yield text_chunk
+            # 额外的内联去重：移除末尾重复片段
+            cleaned = dedup.ngram_detector.get_unique_tail(text_chunk)
+            if cleaned:
+                yield cleaned
+                full_response += cleaned
+
+        # 流式结束后，将完整回复添加到历史
+        if full_response:
+            history_checker.add_message(full_response)
     
     def _deduplicate_and_split(self, text: str, previous_content: str = "") -> tuple:
         """
@@ -619,35 +646,30 @@ async def auto_chat_rounds(
                 "is_final": is_final_round
             }
             
-            # 流式生成回复
+            # 流式生成回复（llm_service.chat_stream 已经做了去重）
             full_response = ""
+            print(f"[AUTO_CHAT] 机器人 {bot.name} 开始生成...")
+            chunk_count = 0
             async for text_chunk in llm_service.chat_stream(
                 messages=bot_messages,
                 system_prompt=system_prompt,
                 temperature=bot.temperature,
                 max_tokens=bot.max_tokens
             ):
-                # 改进的去重逻辑：基于累积内容进行检查
-                cleaned_chunk = text_chunk
+                chunk_count += 1
+                if chunk_count <= 3:
+                    print(f"[AUTO_CHAT] 收到 chunk {chunk_count}: {repr(text_chunk[:30])}...")
 
-                # 检查新 chunk 是否以累积内容结尾（修正型输出）
-                if full_response and text_chunk.startswith(full_response[-50:] if len(full_response) > 50 else full_response):
-                    # 新 chunk 是累积内容的延续，去除重叠部分
-                    overlap_len = len(full_response[-50:] if len(full_response) > 50 else full_response)
-                    cleaned_chunk = text_chunk[overlap_len:]
-                elif full_response and full_response in text_chunk:
-                    # 新 chunk 完全包含之前内容（如修正输出），只取新增部分
-                    cleaned_chunk = text_chunk.replace(full_response, '', 1)
+                full_response += text_chunk
+                yield {
+                    "type": "chunk",
+                    "bot_name": bot.name,
+                    "bot_id": bot.id,
+                    "content": text_chunk,
+                    "conversation_id": conversation_id
+                }
 
-                if cleaned_chunk:
-                    full_response += cleaned_chunk
-                    yield {
-                        "type": "chunk",
-                        "bot_name": bot.name,
-                        "bot_id": bot.id,
-                        "content": cleaned_chunk,
-                        "conversation_id": conversation_id
-                    }
+            print(f"[AUTO_CHAT] 机器人 {bot.name} 完成，共 {chunk_count} 个 chunk")
             
             # 应用去重
             full_response = service._deduplicate_response(full_response)
