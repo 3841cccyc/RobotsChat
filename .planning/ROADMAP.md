@@ -34,7 +34,7 @@
 
 **Plans:** 1 plan
 
-- [ ] 01-01-PLAN.md — 创建streaming_dedup模块，集成到llm_service和group_chat_service
+- [x] 01-01-PLAN.md — 创建streaming_dedup模块，集成到llm_service和group_chat_service
 
 ---
 
@@ -83,7 +83,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. 流式去重核心 | 0/1 | Not started | - |
+| 1. 流式去重核心 | 1/1 | Complete | 2026-03-15 |
 | 2. 短消息输出 | 0/3 | Not started | - |
 | 3. 用户互动机制 | 0/2 | Not started | - |
 
@@ -93,17 +93,17 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DEDUP-01 | Phase 1 | Pending |
-| DEDUP-02 | Phase 1 | Pending |
-| DEDUP-03 | Phase 1 | Pending |
+| DEDUP-01 | Phase 1 | Complete |
+| DEDUP-02 | Phase 1 | Complete |
+| DEDUP-03 | Phase 1 | Complete |
 | SHORT-01 | Phase 2 | Pending |
 | SHORT-02 | Phase 2 | Pending |
 | SHORT-03 | Phase 2 | Pending |
 | USER-01 | Phase 3 | Pending |
 | USER-02 | Phase 3 | Pending |
 
-**v1 Coverage:** 8/8 ✓
+**v1 Coverage:** 3/8 ✓
 
 ---
 
-*Last updated: 2026-03-14*
+*Last updated: 2026-03-15*
