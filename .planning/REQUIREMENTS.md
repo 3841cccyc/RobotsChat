@@ -1,0 +1,60 @@
+# Requirements: 机器人对话系统优化
+
+**Defined:** 2026-03-14
+**Core Value:** 机器人能够在群聊中自主、简洁、无重复地进行连续对话，用户可随时加入讨论。
+
+## v1 Requirements
+
+### 流式去重
+
+- [ ] **DEDUP-01**: 实时检测流式输出中的重复内容，在发送到前端前过滤
+- [ ] **DEDUP-02**: 基于 n-gram 的去重算法，过滤连续重复短语
+- [ ] **DEDUP-03**: 与历史消息比对，防止重复已发送内容
+
+### 短消息输出
+
+- [ ] **SHORT-01**: 截断长输出为 ≤20字/条 的短消息
+- [ ] **SHORT-02**: 在合理断点（句号、逗号、问号）拆分消息
+- [ ] **SHORT-03**: 实现连续输出效果，每条短消息间隔发送
+
+### 用户互动
+
+- [ ] **USER-01**: 用户@提及机制，支持@特定机器人或@所有人
+- [ ] **USER-02**: 用户消息触发机器人响应流程
+
+## v2 Requirements
+
+### 高级功能
+
+- **MENTION-01**: @机器人智能回复（基于关键词相关性选择）
+- **RICH-01**: 支持表情、图片等富媒体消息
+
+## Out of Scope
+
+| Feature | Reason |
+|---------|--------|
+| 语音/视频消息 | 非核心功能 |
+| 文件上传分享 | 非核心功能 |
+| 消息撤回 | 非核心功能 |
+
+## Traceability
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| DEDUP-01 | Phase 1 | Pending |
+| DEDUP-02 | Phase 1 | Pending |
+| DEDUP-03 | Phase 1 | Pending |
+| SHORT-01 | Phase 2 | Pending |
+| SHORT-02 | Phase 2 | Pending |
+| SHORT-03 | Phase 2 | Pending |
+| USER-01 | Phase 3 | Pending |
+| USER-02 | Phase 3 | Pending |
+
+**Coverage:**
+- v1 requirements: 8 total
+- Mapped to phases: 8
+- Unmapped: 0 ✓
+
+---
+*Requirements defined: 2026-03-14*
+*Last updated: 2026-03-14 after initial definition*
