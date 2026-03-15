@@ -18,12 +18,13 @@
 - ✓ 用户加入群聊发送消息 — 现有
 - ✓ 消息历史存储（SQLite）— 现有
 - ✓ 流式输出 — 现有
+- ✓ 流式输出实时去重 (n-gram) — v1.0
+- ✓ 短消息截断输出（≤20字/条）— v1.0
+- ✓ 用户@机器人机制 — v1.0
 
 ### Active
 
-- [ ] 流式输出实时去重 — 解决重复输出问题
-- [ ] 短消息截断输出（≤20字/条）— 连续对话效果
-- [ ] 优化用户@机器人机制 — 更自然的互动
+(TBD - define new requirements for next milestone)
 
 ### Out of Scope
 
@@ -57,8 +58,17 @@
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| 20字短消息 | 用户明确需求，类似微信/QQ风格 | — Pending |
-| 流式实时去重 | 事后去重无法解决流式重复问题 | — Pending |
+| 20字短消息 | 用户明确需求，类似微信/QQ风格 | ✓ 成功实现 |
+| 流式实时去重 | 事后去重无法解决流式重复问题 | ✓ n-gram 4gram 有效 |
+| @mention 模糊匹配 | 支持@机器人名或@all | ✓ 不区分大小写 |
+
+## Current State
+
+**v1.0 MVP 已完成 (2026-03-15)**
+- 3 phases, 3 plans, 所有 8 个需求已验证
+- 核心功能：流式去重、短消息输出、@mention用户互动
+
+**下一步：** 运行 `/gsd:new-milestone` 开始规划新功能
 
 ---
-*Last updated: 2026-03-14 after initialization*
+*Last updated: 2026-03-15 after v1.0 milestone*
