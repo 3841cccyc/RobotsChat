@@ -33,6 +33,51 @@ class GroupChatService:
         if self._active_loops.get(conversation_id) == loop_id:
             del self._active_loops[conversation_id]
 
+    def _parse_mentions(self, text: str, bots: List[Bot]) -> List[Bot]:
+        """
+        解析用户消息中的@mentions，返回被@的机器人列表
+
+        支持:
+        - @机器人名 (模糊匹配，不区分大小写)
+        - @all / @ALL (所有机器人响应)
+        - @所有人 (所有机器人响应)
+
+        Args:
+            text: 用户消息内容
+            bots: 可用机器人列表
+
+        Returns:
+            被@的机器人列表，如果无@则返回空列表
+        """
+        if not text or not bots:
+            return []
+
+        mentioned_bots = []
+        text_lower = text.lower()
+
+        # 检查@all或@所有人
+        if '@all' in text_lower or '@所有人' in text_lower:
+            return bots  # 返回所有机器人
+
+        # 匹配@后跟机器人名 (模糊匹配)
+        # 正则: @(\w+) 匹配@后跟字母数字下划线
+        mention_pattern = re.compile(r'@(\w+)', re.IGNORECASE)
+        mentions = mention_pattern.findall(text)
+
+        for mention in mentions:
+            mention_lower = mention.lower()
+
+            # 查找匹配的机器人（模糊匹配，名称包含mention或mention包含名称）
+            for bot in bots:
+                bot_name_lower = bot.name.lower()
+                if (mention_lower in bot_name_lower or
+                    bot_name_lower in mention_lower or
+                    mention_lower == bot_name_lower):
+                    if bot not in mentioned_bots:
+                        mentioned_bots.append(bot)
+
+        return mentioned_bots
+
     def _select_next_bot(
         self,
         bots: List[Bot],
