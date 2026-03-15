@@ -567,16 +567,32 @@ class GroupChatService:
         )
         db.add(user_message)
         await db.commit()
-        
+
         # 发送用户消息确认
         yield {
             "type": "user_message",
             "content": user_prompt,
             "sender_name": user_name
         }
-        
-        # 让所有机器人依次回复
-        for bot in bots:
+
+        # 解析@mentions
+        mentioned_bots = self._parse_mentions(user_prompt, bots)
+
+        # 发送mentions解析结果
+        yield {
+            "type": "mentions_parsed",
+            "mentioned_bot_names": [b.name for b in mentioned_bots],
+            "total_bots": len(bots)
+        }
+
+        # 确定响应的机器人列表
+        if mentioned_bots:
+            responding_bots = mentioned_bots  # 只让被@的机器人响应
+        else:
+            responding_bots = bots  # 没有@时所有机器人响应
+
+        # 让筛选后的机器人依次回复
+        for bot in responding_bots:
             # 获取该机器人的上下文
             bot_messages = self._get_bot_context(all_messages, bot.name)
             
