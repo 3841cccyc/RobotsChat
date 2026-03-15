@@ -79,7 +79,7 @@
 
 **Plans:** 1/1 plans
 
-- [ ] 03-01-PLAN.md — 实现@mention解析函数和响应筛选
+- [x] 03-01-PLAN.md — 实现@mention解析函数和响应筛选 (complete)
 
 ---
 
@@ -89,7 +89,7 @@
 |-------|----------------|--------|-----------|
 | 1. 流式去重核心 | 1/1 | Complete    | 2026-03-14 |
 | 2. 短消息输出 | 1/1 | Complete    | 2026-03-15 |
-| 3. 用户互动机制 | 0/1 | Not started | - |
+| 3. 用户互动机制 | 1/1 | Complete    | 2026-03-15 |
 
 ---
 
@@ -103,10 +103,10 @@
 | SHORT-01 | Phase 2 | Complete |
 | SHORT-02 | Phase 2 | Complete |
 | SHORT-03 | Phase 2 | Complete |
-| USER-01 | Phase 3 | Pending |
-| USER-02 | Phase 3 | Pending |
+| USER-01 | Phase 3 | Complete |
+| USER-02 | Phase 3 | Complete |
 
-**v1 Coverage:** 6/8 (75%) ✓
+**v1 Coverage:** 8/8 (100%) ✓
 
 ---
 
