@@ -243,40 +243,60 @@ class GroupChatService:
         
         return text.strip(), should_split
     
-    def _split_into_short_messages(self, text: str, max_length: int = 80) -> List[str]:
+    def _split_into_short_messages(self, text: str, max_length: int = 20) -> List[str]:
         """
-        将长文本拆分成多个短消息
+        将长文本拆分成多个短消息，每条最多max_length个字符
+        断点优先级：句号/问号/感叹号 > 逗号/顿号 > 强制截断
         """
         if not text or len(text) <= max_length:
             return [text] if text else []
-        
+
         messages = []
         current = ""
-        
-        # 断点标记
-        breakpoints = ['。', '！', '？', '；', '，', '.', '!', '?', ';', ',']
-        
+
+        # 断点优先级：第一优先级-句号/感叹号/问号，第二优先级-逗号/顿号
+        primary_breakpoints = ['。', '！', '？']  # 句号、感叹号、问号
+        secondary_breakpoints = ['，', '、']      # 逗号、顿号
+
         for char in text:
             current += char
-            
-            # 如果遇到断点且当前长度足够，拆分
-            if char in breakpoints and len(current) >= 30:
-                messages.append(current.strip())
-                current = ""
-            elif len(current) >= max_length:
-                # 强制在空格处拆分
-                last_space = current.rfind(' ')
-                if last_space > 20:
-                    messages.append(current[:last_space].strip())
-                    current = current[last_space:]
+
+            # 检查是否到达最大长度
+            if len(current) >= max_length:
+                # 尝试找到最近的断点
+                breakpoint_pos = -1
+                breakpoint_type = None
+
+                # 先找主要断点（句号、问号、感叹号）
+                for bp in primary_breakpoints:
+                    pos = current.rfind(bp)
+                    if pos > 0 and pos < len(current):
+                        breakpoint_pos = pos + 1  # 包含标点
+                        breakpoint_type = 'primary'
+                        break
+
+                # 如果没有主要断点，找次要断点
+                if breakpoint_pos == -1:
+                    for bp in secondary_breakpoints:
+                        pos = current.rfind(bp)
+                        if pos > 5:  # 至少5个字符
+                            breakpoint_pos = pos + 1
+                            breakpoint_type = 'secondary'
+                            break
+
+                # 如果找到断点且不是太短，在断点处拆分
+                if breakpoint_pos > 5:
+                    messages.append(current[:breakpoint_pos].strip())
+                    current = current[breakpoint_pos:]
                 else:
+                    # 强制拆分
                     messages.append(current.strip())
                     current = ""
-        
+
         # 添加剩余内容
         if current.strip():
             messages.append(current.strip())
-        
+
         return messages
     
     def _deduplicate_response(self, text: str) -> str:
@@ -675,7 +695,7 @@ async def auto_chat_rounds(
             full_response = service._deduplicate_response(full_response)
             
             # 拆分消息为多条短消息
-            short_messages = service._split_into_short_messages(full_response, max_length=80)
+            short_messages = service._split_into_short_messages(full_response, max_length=20)
             
             # 如果需要拆分，逐条发送
             if len(short_messages) > 1:
@@ -703,9 +723,8 @@ async def auto_chat_rounds(
                         "total_parts": len(short_messages)
                     }
                     
-                    # 计算延迟：每条消息延迟 1-2 秒
-                    delay = min(len(msg) * 0.05, 1.0) + 1.0
-                    await asyncio.sleep(delay)
+                    # 1秒固定间隔
+                    await asyncio.sleep(1.0)
             
             # 保存回复到数据库
             if full_response:

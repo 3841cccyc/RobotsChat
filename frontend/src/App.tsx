@@ -9,6 +9,42 @@ import { BotModal } from './components/BotModal';
 import { SettingsPanel } from './components/SettingsPanel';
 import { GroupModal, GroupList } from './components/GroupModal';
 
+// 辅助函数：检查文本是否重复（简单实现）
+const isDuplicateContent = (newContent: string, existingContents: string[]): boolean => {
+  if (!newContent || newContent.length < 10) return false;
+  
+  const normalized = newContent.toLowerCase().trim();
+  
+  for (const existing of existingContents) {
+    if (!existing || existing.length < 10) continue;
+    
+    const normalizedExisting = existing.toLowerCase().trim();
+    
+    // 完全相同
+    if (normalized === normalizedExisting) return true;
+    
+    // 新内容包含已有内容（重复）
+    if (normalized.includes(normalizedExisting) && normalizedExisting.length > 20) return true;
+    
+    // 已有内容包含新内容
+    if (normalizedExisting.includes(normalized) && normalized.length > 20) return true;
+    
+    // 相似度检查（简单：共同字符超过70%）
+    const longer = normalized.length > normalizedExisting.length ? normalized : normalizedExisting;
+    const shorter = normalized.length > normalizedExisting.length ? normalizedExisting : normalized;
+    
+    if (longer.length > 30 && shorter.length > 30) {
+      let matches = 0;
+      for (const char of shorter) {
+        if (longer.includes(char)) matches++;
+      }
+      if (matches / shorter.length > 0.7) return true;
+    }
+  }
+  
+  return false;
+};
+
 function App() {
   // 状态管理
   const [bots, setBots] = useState<Bot[]>([]);
@@ -227,6 +263,9 @@ function App() {
     // 用于追踪每个机器人的累积内容（用于覆盖式渲染）
     const botContents: Record<string, string> = {};
     
+    // 用于去重的已显示内容列表
+    const displayedContents: string[] = [];
+    
     try {
       const response = await groupChatApi.startStream({
         bot_ids: selectedBotIds,
@@ -269,16 +308,32 @@ function App() {
             return newMsgs;
           });
         } else if (data.type === 'bot_done') {
-          // 机器人回复完成
+          // 机器人回复完成，检查是否重复
           setGroupMessages(prev => {
             const newMsgs = [...prev];
             const lastMsg = newMsgs[newMsgs.length - 1];
             if (lastMsg && lastMsg.isStreaming) {
-              lastMsg.isStreaming = false;
+              // 检查是否重复
+              const existingContents = newMsgs
+                .filter(m => m.content && m.sender_name !== lastMsg.sender_name)
+                .map(m => m.content);
+              
+              if (isDuplicateContent(lastMsg.content, existingContents)) {
+                console.log("[DEBUG] 检测到重复内容，已过滤:", lastMsg.content.substring(0, 50));
+                // 标记为非流式，但不添加到显示列表（实际上是移除）
+                lastMsg.isStreaming = false;
+                lastMsg.isDuplicate = true; // 标记为重复
+              } else {
+                // 添加到去重列表
+                displayedContents.push(lastMsg.content);
+                lastMsg.isStreaming = false;
+              }
             }
             return newMsgs;
           });
         } else if (data.type === 'done') {
+          // 清理重复消息
+          setGroupMessages(prev => prev.filter(m => !m.isDuplicate));
           setGroupConversationId(data.conversation_id);
           setIsGroupStarted(true);
         }
@@ -299,6 +354,9 @@ function App() {
     
     // 用于追踪每个机器人的累积内容（用于覆盖式渲染）
     const botContents: Record<string, string> = {};
+    
+    // 用于去重的已显示内容列表
+    const displayedContents: string[] = [];
     
     try {
       await groupChatApi.sendMessageStream({
@@ -341,16 +399,31 @@ function App() {
             return newMsgs;
           });
         } else if (data.type === 'bot_done') {
+          // 机器人回复完成，检查是否重复
           setGroupMessages(prev => {
             const newMsgs = [...prev];
             const lastMsg = newMsgs[newMsgs.length - 1];
             if (lastMsg && lastMsg.isStreaming) {
+              // 检查是否重复
+              const existingContents = newMsgs
+                .filter(m => m.content && m.sender_name !== lastMsg.sender_name && !m.isDuplicate)
+                .map(m => m.content);
+              
+              if (isDuplicateContent(lastMsg.content, existingContents)) {
+                console.log("[DEBUG] 检测到重复内容，已过滤:", lastMsg.content.substring(0, 50));
+                lastMsg.isDuplicate = true;
+              } else {
+                displayedContents.push(lastMsg.content);
+              }
               lastMsg.isStreaming = false;
             }
             return newMsgs;
           });
         }
       });
+      
+      // 清理重复消息
+      setGroupMessages(prev => prev.filter(m => !m.isDuplicate));
     } catch (error) {
       console.error('发送群聊消息失败:', error);
       alert('发送消息失败');
@@ -374,6 +447,9 @@ function App() {
     // 用于追踪每个机器人的累积内容
     const botContents: Record<string, string> = {};
     
+    // 用于去重的已显示内容列表
+    const displayedContents: string[] = [];
+    
     try {
       await groupChatApi.startAutoChat(
         groupConversationId,
@@ -385,6 +461,7 @@ function App() {
           if (data.type === 'auto_start') {
             // 自动聊天开始
             console.log("开始自动聊天，共", data.rounds, "轮");
+            displayedContents.length = 0; // 清空去重列表
           } else if (data.type === 'bot_start') {
             // 机器人开始回复
             botContents[data.bot_name] = '';
@@ -418,11 +495,22 @@ function App() {
               return newMsgs;
             });
           } else if (data.type === 'bot_done') {
-            // 机器人回复完成
+            // 机器人回复完成，检查是否重复
             setGroupMessages(prev => {
               const newMsgs = [...prev];
               const lastMsg = newMsgs[newMsgs.length - 1];
               if (lastMsg && lastMsg.isStreaming) {
+                // 检查是否重复
+                const existingContents = newMsgs
+                  .filter(m => m.content && m.sender_name !== lastMsg.sender_name && !m.isDuplicate)
+                  .map(m => m.content);
+                
+                if (isDuplicateContent(lastMsg.content, existingContents)) {
+                  console.log("[DEBUG] 检测到重复内容，已过滤:", lastMsg.content.substring(0, 50));
+                  lastMsg.isDuplicate = true;
+                } else {
+                  displayedContents.push(lastMsg.content);
+                }
                 lastMsg.isStreaming = false;
               }
               return newMsgs;
@@ -440,7 +528,8 @@ function App() {
             });
             console.log("[DEBUG] 消息将拆分为", data.total_parts, "条发送");
           } else if (data.type === 'auto_complete' || data.type === 'auto_stopped') {
-            // 自动聊天完成或停止
+            // 自动聊天完成或停止，清理重复消息
+            setGroupMessages(prev => prev.filter(m => !m.isDuplicate));
             setIsAutoChatComplete(true);
             setIsLoading(false);  // 完成后立即解除加载状态
             if (data.message) {

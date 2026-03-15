@@ -7,7 +7,7 @@
 
 ## Phases
 
-- [x] **Phase 1: 流式去重核心** - 实现实时流式输出中的重复内容检测与过滤 (completed 2026-03-14)
+- [x] **Phase 1: 流式去重核心** - 实现实时流式输出中的重复内容检测与过滤 (completed 2026-03-14)
 - [ ] **Phase 2: 短消息输出** - 实现≤20字短消息的截断与连续输出
 - [ ] **Phase 3: 用户互动机制** - 实现@提及和用户触发响应
 
@@ -34,7 +34,7 @@
 
 **Plans:** 1/1 plans complete
 
-- [x] 01-01-PLAN.md — 创建streaming_dedup模块，集成到llm_service和group_chat_service
+- [x] 01-PLAN.md — 创建streaming_dedup模块，集成到llm_service和group_chat_service
 
 ---
 
@@ -55,7 +55,9 @@
 3. 多条短消息依次发送，间隔时间自然（不堆积也不错慢）
 4. 用户在群聊中看到的是连续对话效果，而非一次性长文本
 
-**Plans:** TBD
+**Plans:** 1/1 plans
+
+- [x] 02-PLAN.md — 修改 _split_into_short_messages 为20字限制，优化断点优先级，添加1秒延迟发送机制
 
 ---
 
@@ -84,7 +86,7 @@
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. 流式去重核心 | 1/1 | Complete    | 2026-03-14 |
-| 2. 短消息输出 | 0/3 | Not started | - |
+| 2. 短消息输出 | 1/1 | Ready to execute | - |
 | 3. 用户互动机制 | 0/2 | Not started | - |
 
 ---
@@ -96,13 +98,13 @@
 | DEDUP-01 | Phase 1 | Complete |
 | DEDUP-02 | Phase 1 | Complete |
 | DEDUP-03 | Phase 1 | Complete |
-| SHORT-01 | Phase 2 | Pending |
-| SHORT-02 | Phase 2 | Pending |
-| SHORT-03 | Phase 2 | Pending |
+| SHORT-01 | Phase 2 | Ready |
+| SHORT-02 | Phase 2 | Ready |
+| SHORT-03 | Phase 2 | Ready |
 | USER-01 | Phase 3 | Pending |
 | USER-02 | Phase 3 | Pending |
 
-**v1 Coverage:** 3/8 ✓
+**v1 Coverage:** 6/8 ✓
 
 ---
 

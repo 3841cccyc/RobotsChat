@@ -61,9 +61,16 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
+    import sys
+
+    # 确保 print 输出立即刷新
+    sys.stdout.reconfigure(line_buffering=True)
+
     uvicorn.run(
         "app.main:app",
         host=settings.host,
         port=settings.port,
-        reload=True
+        reload=True,
+        log_level="info",
+        access_log=True
     )

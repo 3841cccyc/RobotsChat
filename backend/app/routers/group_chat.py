@@ -180,11 +180,12 @@ async def start_group_chat_stream(request: GroupChatStartRequest, db: AsyncSessi
             
             # 让每个机器人依次回复
             for bot in bots:
+                print(f"[GROUP_CHAT] 机器人 {bot.name} 开始生成回复...")
                 bot_messages = group_chat_service._get_bot_context(messages, bot.name)
-                
+
                 # 发送机器人开始信号
                 yield f"data: {json.dumps({'type': 'bot_start', 'bot_name': bot.name, 'bot_id': bot.id})}\n\n"
-                
+
                 # 流式生成
                 full_response = ""
                 response_stream = group_chat_service._generate_bot_response_stream(
@@ -192,24 +193,19 @@ async def start_group_chat_stream(request: GroupChatStartRequest, db: AsyncSessi
                     messages=bot_messages,
                     all_messages=messages
                 )
-                
+
+                print(f"[GROUP_CHAT] 开始接收流式数据...")
+                chunk_count = 0
                 async for chunk in response_stream:
-                    # 改进的去重逻辑：基于累积内容进行检查
-                    cleaned_chunk = chunk
+                    chunk_count += 1
+                    if chunk_count <= 3:  # 只打印前3个chunk作为调试
+                        print(f"[GROUP_CHAT] 收到 chunk {chunk_count}: {repr(chunk[:50])}...")
 
-                    # 检查新 chunk 是否以累积内容结尾（修正型输出）
-                    if full_response and chunk.startswith(full_response[-50:] if len(full_response) > 50 else full_response):
-                        # 新 chunk 是累积内容的延续，去除重叠部分
-                        overlap_len = len(full_response[-50:] if len(full_response) > 50 else full_response)
-                        cleaned_chunk = chunk[overlap_len:]
-                    elif full_response and full_response in chunk:
-                        # 新 chunk 完全包含之前内容（如修正输出），只取新增部分
-                        # 使用 replace 只替换一次，避免错误替换
-                        cleaned_chunk = chunk.replace(full_response, '', 1)
+                    # 简化处理：直接传递（去重已在llm_service中完成）
+                    full_response += chunk
+                    yield f"data: {json.dumps({'type': 'chunk', 'bot_name': bot.name, 'content': chunk})}\n\n"
 
-                    if cleaned_chunk:
-                        full_response += cleaned_chunk
-                        yield f"data: {json.dumps({'type': 'chunk', 'bot_name': bot.name, 'content': cleaned_chunk})}\n\n"
+                print(f"[GROUP_CHAT] 机器人 {bot.name} 完成，共 {chunk_count} 个 chunk")
                 
                 # 后处理：去重和拆分
                 final_response, should_split = group_chat_service._deduplicate_and_split(full_response)
@@ -307,8 +303,9 @@ async def add_group_message_stream(request: GroupChatMessageRequest, db: AsyncSe
             
             # 让所有机器人依次回复
             for bot in bots:
+                print(f"[GROUP_CHAT] 机器人 {bot.name} 开始生成回复...")
                 bot_messages = group_chat_service._get_bot_context(all_messages, bot.name)
-                
+
                 yield f"data: {json.dumps({'type': 'bot_start', 'bot_name': bot.name, 'bot_id': bot.id})}\n\n"
 
                 full_response = ""
@@ -317,23 +314,19 @@ async def add_group_message_stream(request: GroupChatMessageRequest, db: AsyncSe
                     messages=bot_messages,
                     all_messages=all_messages
                 )
-                
+
+                print(f"[GROUP_CHAT] 开始接收流式数据...")
+                chunk_count = 0
                 async for chunk in response_stream:
-                    # 改进的去重逻辑：基于累积内容进行检查
-                    cleaned_chunk = chunk
+                    chunk_count += 1
+                    if chunk_count <= 3:
+                        print(f"[GROUP_CHAT] 收到 chunk {chunk_count}: {repr(chunk[:50])}...")
 
-                    # 检查新 chunk 是否以累积内容结尾（修正型输出）
-                    if full_response and chunk.startswith(full_response[-50:] if len(full_response) > 50 else full_response):
-                        # 新 chunk 是累积内容的延续，去除重叠部分
-                        overlap_len = len(full_response[-50:] if len(full_response) > 50 else full_response)
-                        cleaned_chunk = chunk[overlap_len:]
-                    elif full_response and full_response in chunk:
-                        # 新 chunk 完全包含之前内容（如修正输出），只取新增部分
-                        cleaned_chunk = chunk.replace(full_response, '', 1)
+                    # 简化处理：直接传递
+                    full_response += chunk
+                    yield f"data: {json.dumps({'type': 'chunk', 'bot_name': bot.name, 'content': chunk})}\n\n"
 
-                    if cleaned_chunk:
-                        full_response += cleaned_chunk
-                        yield f"data: {json.dumps({'type': 'chunk', 'bot_name': bot.name, 'content': cleaned_chunk})}\n\n"
+                print(f"[GROUP_CHAT] 机器人 {bot.name} 完成，共 {chunk_count} 个 chunk")
                 
                 # 后处理：去重和拆分
                 final_response, should_split = group_chat_service._deduplicate_and_split(full_response)

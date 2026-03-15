@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(python -c \"import app.services.llm_service; print\\(''Syntax OK''\\)\")",
+      "Bash(python -c \"import app.routers.group_chat; import app.services.group_chat_service; print\\(''Syntax OK''\\)\")",
+      "Bash(python -c \"import 启动; print\\(''OK''\\)\")"
+    ]
+  }
+}
