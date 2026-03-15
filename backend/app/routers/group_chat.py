@@ -209,13 +209,24 @@ async def start_group_chat_stream(request: GroupChatStartRequest, db: AsyncSessi
                 
                 # 后处理：去重和拆分
                 final_response, should_split = group_chat_service._deduplicate_and_split(full_response)
-                
-                # 如果需要拆分，发送拆分信号
-                if should_split and final_response:
-                    short_messages = group_chat_service._split_into_short_messages(final_response)
-                    if len(short_messages) > 1:
-                        yield f"data: {json.dumps({'type': 'message_split', 'bot_name': bot.name, 'count': len(short_messages)})}\n\n"
-                
+
+                # 拆分为20字短消息
+                short_messages = group_chat_service._split_into_short_messages(final_response, max_length=20)
+
+                # 逐条发送短消息，每条间隔1秒
+                if len(short_messages) > 1:
+                    # 发送拆分信号
+                    yield f"data: {json.dumps({'type': 'message_split', 'bot_name': bot.name, 'count': len(short_messages)})}\n\n"
+
+                    # 逐条发送，每条间隔1秒
+                    for i, msg in enumerate(short_messages[1:], 1):
+                        yield f"data: {json.dumps({'type': 'chunk', 'bot_name': bot.name, 'content': msg, 'part': i+1, 'total_parts': len(short_messages)})}\n\n"
+                        await asyncio.sleep(1.0)  # 1秒间隔
+                else:
+                    # 不需要拆分时，原样发送
+                    if final_response:
+                        yield f"data: {json.dumps({'type': 'chunk', 'bot_name': bot.name, 'content': final_response})}\n\n"
+
                 # 保存消息
                 if final_response:
                     bot_message = GroupMessage(
@@ -330,12 +341,24 @@ async def add_group_message_stream(request: GroupChatMessageRequest, db: AsyncSe
                 
                 # 后处理：去重和拆分
                 final_response, should_split = group_chat_service._deduplicate_and_split(full_response)
-                
-                if should_split and final_response:
-                    short_messages = group_chat_service._split_into_short_messages(final_response)
-                    if len(short_messages) > 1:
-                        yield f"data: {json.dumps({'type': 'message_split', 'bot_name': bot.name, 'count': len(short_messages)})}\n\n"
-                
+
+                # 拆分为20字短消息
+                short_messages = group_chat_service._split_into_short_messages(final_response, max_length=20)
+
+                # 逐条发送短消息，每条间隔1秒
+                if len(short_messages) > 1:
+                    # 发送拆分信号
+                    yield f"data: {json.dumps({'type': 'message_split', 'bot_name': bot.name, 'count': len(short_messages)})}\n\n"
+
+                    # 逐条发送，每条间隔1秒
+                    for i, msg in enumerate(short_messages[1:], 1):
+                        yield f"data: {json.dumps({'type': 'chunk', 'bot_name': bot.name, 'content': msg, 'part': i+1, 'total_parts': len(short_messages)})}\n\n"
+                        await asyncio.sleep(1.0)  # 1秒间隔
+                else:
+                    # 不需要拆分时，原样发送
+                    if final_response:
+                        yield f"data: {json.dumps({'type': 'chunk', 'bot_name': bot.name, 'content': final_response})}\n\n"
+
                 if final_response:
                     bot_message = GroupMessage(
                         conversation_id=request.conversation_id,
