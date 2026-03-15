@@ -442,9 +442,30 @@ class GroupChatService:
                 "content": user_prompt,
                 "sender_name": user_name
             })
-        
-        # 按顺序让每个机器人发言
-        for bot in bots:
+
+            # 解析@mentions
+            mentioned_bots = self._parse_mentions(user_prompt, bots)
+
+            # 发送mentions解析结果
+            yield {
+                "type": "mentions_parsed",
+                "mentioned_bot_names": [b.name for b in mentioned_bots],
+                "total_bots": len(bots)
+            }
+
+            # 确定响应的机器人列表
+            if mentioned_bots:
+                responding_bots = mentioned_bots
+                # 更新会话的主机器人
+                conversation.bot_id = responding_bots[0].id
+                await db.commit()
+            else:
+                responding_bots = bots
+        else:
+            responding_bots = bots
+
+        # 按顺序让筛选后的机器人发言
+        for bot in responding_bots:
             # 获取该机器人的消息上下文
             bot_messages = self._get_bot_context(messages, bot.name)
             
